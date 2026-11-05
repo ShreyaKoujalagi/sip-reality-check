@@ -34,7 +34,7 @@ function validateResult(r,input){
 }
 function noGoal(input){
  const s=`${input.intent} ${input.context||''}`.toLowerCase();
- return /(?:never|didn.t|did not|haven.t|have not|no|without|not really|don't|do not)\s+(?:(?:actually|really|even|yet|ever|originally)\s+)?(?:set|have|had|make|made|define|defined|choose|chosen|know)\s+(?:(?:a|an|any|my|specific|clear|financial|investment|saving|savings|real|proper|personal)\s+){0,4}(?:goal|plan|purpose|target|reason|objective)/i.test(s)||/\b(?:no clear (?:goal|plan)|just (?:followed|copied) (?:my |a )?friend)\b/i.test(s);
+ return /\b(?:i am|i'm|im) not sure why i started\b/i.test(s)||/(?:never|didn.t|did not|haven.t|have not|no|without|not really|don't|do not)\s+(?:(?:actually|really|even|yet|ever|originally)\s+)?(?:set|have|had|make|made|define|defined|choose|chosen|know)\s+(?:(?:a|an|any|my|specific|clear|financial|investment|saving|savings|real|proper|personal)\s+){0,4}(?:goal|plan|purpose|target|reason|objective)/i.test(s)||/\b(?:no clear (?:goal|plan)|just (?:followed|copied) (?:my |a )?friend)\b/i.test(s);
 }
 function concernCategory(input){
  const s=`${input.concern} ${input.context||''}`.toLowerCase();
@@ -57,7 +57,7 @@ function guidedReflection(input){
  const assumptions=[];
  const unknowns=[];
  if(missingGoal){
-  assumptions.push('You said you did not set a clear financial goal. There is no original goal to compare returns against.');
+  assumptions.push(/not sure why i started/i.test(intent)?'You are unsure why you started, so no original goal can be assumed.':'You said you did not set a clear financial goal. There is no original goal to compare returns against.');
   unknowns.push('What would you want this SIP to help you achieve, if anything?');
  }else if(category==='affordability'){
   assumptions.push('Increased living costs are a real constraint, not necessarily a mistaken belief about investing.');
