@@ -58,3 +58,10 @@ test('prompt explicitly handles missing goal, guarantees, performance confusion,
 test('guided result is clearly distinguished from AI in API response',async()=>{const r=await call(noGoalCase,async()=>fake(503));assert.equal(r.mode,'guided');assert.equal(r.gate,'not_run');assert.match(r.result.assumptions.join(' '),/did not set a clear/i)});
 
 Promise.all(recorded).then(()=>console.log(`\n${recorded.length} checks passed. LIVE Gemini connection not run (no access to your API key).`)).catch(()=>process.exitCode=1);
+// Extra targeted checks: neutral explanation must not be mistaken for advice.
+test('neutral not-guaranteed explanation accepted',()=>assert.equal(validateResult({...valid,assumptions:['Mutual fund returns are not guaranteed; regular contributions can still show a loss.']},base),null));
+test('neutral mention of buying a fund accepted',()=>assert.equal(validateResult({...valid,assumptions:['You asked whether buying a fund would solve your concern; the available information does not establish that.']},base),null));
+test('a direct recommendation to buy is blocked',()=>assert.ok(validateResult({...valid,assumptions:['You should buy a different mutual fund right now.']},base)));
+test('an imperative to stop is blocked',()=>assert.ok(validateResult({...valid,takeaway:'Stop your SIP right now and move to another fund.'},base)));
+test('promise of guaranteed returns rejected',()=>assert.ok(validateResult({...valid,takeaway:'Your returns are guaranteed to increase.'},base)));
+test('corrected neutral response uses AI mode',async()=>{const safer={...valid,assumptions:['Mutual fund returns are not guaranteed; regular payments do not prevent losses.']};const packet=fake(200,{candidates:[{content:{parts:[{text:JSON.stringify(safer)}]}}]});const r=await call(base,async()=>packet);assert.equal(r.mode,'ai');assert.equal(r.gate,'passed')});

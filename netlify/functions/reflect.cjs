@@ -2,7 +2,13 @@
 // SIP Reality Check: Gemini-first; honest, conservative guided mode on provider failure.
 // No secrets, identifiable user content, or provider response bodies are logged.
 const MAX={intent:260,concern:540,context:300};
-const ADVICE=/\b(you (?:should|must|need to|have to)|i (?:recommend|suggest|advise)|my recommendation is|best (?:to|option is)|definitely|guaranteed|risk[- ]free|assured returns|buy|sell|redeem|switch (?:funds?|to)|increase (?:your |the )?(?:sip|investment)|stop (?:your |the )?sip|continue (?:your |the )?sip|pause (?:your |the )?sip|invest (?:more|in)|exit (?:the |your )?(?:fund|sip))\b/i;
+// Detect actionable investment instructions, not neutral discussion of what a user asked.
+// Bare words such as "buy", "stop", "guaranteed", or questions about them are NOT advice.
+const ADVICE=/\b(?:you (?:should|must|need to|have to)\s+(?:(?:immediately|definitely|now)\s+)?(?:buy|sell|redeem|switch|increase|reduce|pause|continue|stop|invest)|i (?:recommend|advise|suggest)\s+(?:that you |you )?(?:buy|sell|redeem|switch|increase|reduce|pause|continue|stop|invest)|my recommendation is\s+(?:to )?(?:buy|sell|redeem|switch|increase|reduce|pause|continue|stop|invest))\b|(?:^|[.!?]\s+)(?:buy|sell|redeem|switch|increase|reduce|pause|continue|stop|invest)\s+(?:your |the |this |another |a |an |in |more )?(?:sip|fund|mutual fund|shares?|stock|investment)\b/i;
+function falseGuarantee(s){
+ // Reject promises, but accept accurate warnings such as 'returns are not guaranteed'.
+ return /\b(?:guaranteed|assured|risk[- ]free)\b/i.test(s) && !/\b(?:not|never|no|aren.t|isn.t|cannot|can.t|without)\s+(?:(?:fully|always|necessarily)\s+)?(?:guaranteed|assured|risk[- ]free|guarantee)\b/i.test(s) && !/\b(?:not|no)\s+guarantee\b/i.test(s);
+}
 const INSTRUCTION=/\b(ignore (?:previous|all|the) instructions|system prompt|developer instruction|jailbreak|act as (?:a |an )?(?:financial advisor|system)|override (?:the )?(?:rules|safety))\b/i;
 const PII=/\b\d{9,18}\b|\b[A-Z]{5}\d{4}[A-Z]\b|[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/i;
 const clean=value=>typeof value==='string'?value.trim().replace(/\s+/g,' '):'';
@@ -18,9 +24,9 @@ function validateResult(r,input){
  if(!r||typeof r!=='object'||Array.isArray(r))return 'invalid_object';
  for(const k of ['facts','assumptions','unknowns']){
   if(!Array.isArray(r[k])||r[k].length<1||r[k].length>3)return `invalid_${k}`;
-  for(const s of r[k])if(typeof s!=='string'||s.length<12||s.length>240||ADVICE.test(s)||INSTRUCTION.test(s)||PII.test(s))return `unsafe_${k}`;
+  for(const s of r[k])if(typeof s!=='string'||s.length<12||s.length>240||ADVICE.test(s)||falseGuarantee(s)||INSTRUCTION.test(s)||PII.test(s))return `unsafe_${k}`;
  }
- if(typeof r.takeaway!=='string'||r.takeaway.length<12||r.takeaway.length>280||ADVICE.test(r.takeaway)||INSTRUCTION.test(r.takeaway)||PII.test(r.takeaway))return 'unsafe_takeaway';
+ if(typeof r.takeaway!=='string'||r.takeaway.length<12||r.takeaway.length>280||ADVICE.test(r.takeaway)||falseGuarantee(r.takeaway)||INSTRUCTION.test(r.takeaway)||PII.test(r.takeaway))return 'unsafe_takeaway';
  const text=[...r.facts,...r.assumptions,...r.unknowns,r.takeaway].join(' ');
  if(/\b(?:will|must) (?:rise|recover|grow|bounce back)\b|\b\d+(?:\.\d+)?\s?%|\b(?:nifty|sensex|xirr|nav)\b/i.test(text))return 'unsupported_claims';
  if(!/\d/.test(`${input.intent} ${input.concern} ${input.context||''}`)&&/\d/.test(text))return 'unreported_numbers';
