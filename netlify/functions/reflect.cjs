@@ -47,7 +47,7 @@ async function handler(event){
  try{
   const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),18000);
   let res;
-  try{res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify({contents:[{role:'user',parts:[{text:makePrompt(data)}]}],generationConfig:{responseMimeType:'application/json',responseSchema:schema,temperature:0.1,maxOutputTokens:1800,thinkingConfig:{thinkingBudget:0}}}),signal:controller.signal});}
+  try{res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify({contents:[{role:'user',parts:[{text:makePrompt(data)}]}],generationConfig:{responseMimeType:'application/json',responseSchema:schema,maxOutputTokens:1800}}),signal:controller.signal});}
   finally{clearTimeout(timer);}
   if(!res.ok){console.error('Gemini API status:',res.status);return reply(502,fallback('AI service unavailable'));}
   const packet=await res.json();const raw=packet?.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
