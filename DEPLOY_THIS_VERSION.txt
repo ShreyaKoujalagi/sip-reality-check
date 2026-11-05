@@ -1,0 +1,29 @@
+SIP REALITY CHECK — COMPLETE USER JOURNEY
+
+What changed
+1. The existing saved starting point, AI reflection, and guided fallback remain intact.
+2. Your Way Forward now always includes a useful plain-language learning point and one relevant action to verify.
+3. If an investor selects Partly or Not yet, a small additional-help section opens, without asking them to re-enter information:
+   - Explain it simply: an explanation matched to the concern.
+   - What should I check?: specific details to verify.
+   - I need personal guidance: two independently verified official links, one to the SEBI investment adviser register and one to Groww help.
+4. Selecting Yes hides additional help. A new Reality Check resets earlier selections.
+
+Important: This research prototype is not affiliated with Groww, has no access to real investments, does not provide specific investment advice, and does not transfer submitted user answers to the support links. The three additional-help options are deliberately transparent, prewritten general information, not a second AI call or personalized financial assessment.
+
+DEPLOY TO YOUR EXISTING PROJECT (NOT A NEW SITE)
+1. Extract the ZIP, then open the SIP_Reality_Check_Final_Journey folder.
+2. Select files and folders INSIDE the folder (not the folder itself).
+3. Open GitHub repository sip-reality-check. Choose Add file -> Upload files.
+4. Verify app.js, styles.css, index.html, netlify.toml appear at repository root; netlify/functions/reflect.cjs stays at its nested path.
+5. Commit the changes once, and verify Netlify Deploys shows Published.
+6. Hard refresh the existing live URL (Ctrl+Shift+R). Run a concern, click Partly or Not yet, and test each of the three help choices. Return via Yes and confirm the extra section hides.
+
+Do not change your API key or model environment variables. This update does not change the AI backend.
+
+TESTING
+Existing backend test suite: 46 passed.
+Existing saved-intent and next-step suite: 12 passed.
+Additional closing-help regression suite: 12 passed.
+Total automated local checks: 70 passed.
+A full visual browser test could not be run in this environment because the local browser was blocked by administrator policy. A live Gemini call was not made; it requires your private Netlify environment variable. Verify the final deployed version using its actual Netlify URL.

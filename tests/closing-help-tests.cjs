@@ -1,0 +1,20 @@
+'use strict';
+const assert=require('assert'),fs=require('fs'),vm=require('vm'),path=require('path');
+const root=path.resolve(__dirname,'..');const app=fs.readFileSync(path.join(root,'app.js'),'utf8'),html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+const snippet=app.slice(app.indexOf('function helpContentFor(data)'),app.indexOf('function displayHelp(kind)'));
+const help=vm.runInNewContext(snippet+';helpContentFor;');
+let n=0;function check(name,fn){fn();n++;console.log('PASS',name)}
+const scenario=(intent,concern,context='')=>({intent,concern,context});
+check('no goal no invented goal',()=>{const x=help(scenario('My friend suggested it','I am unsure about my returns','I never set a financial goal'));assert.match(x.learn,/do not need to invent/i);assert.doesNotMatch(x.explain,/your original goal/i)});
+check('guaranteed return belief corrected',()=>{const x=help(scenario('Save seven years','My friend says mutual funds always give good returns'));assert.match(x.learn,/not guaranteed/i)});
+check('affordability acknowledged',()=>{const x=help(scenario('Saving habit','My bills and rent rose'));assert.match(x.learn,/real-life constraint/i)});
+check('payment directed to verifiable status',()=>{const x=help(scenario('Build savings','My SIP instalment failed'));assert.match(x.verify,/instalment status/i)});
+check('performance explanation is jargon-light',()=>{const x=help(scenario('Saving future','My returns are negative'));assert.match(x.explain,/units.*less or more/i);assert.doesNotMatch(x.explain,/NAV|XIRR/)});
+check('direct advice not generated',()=>{const x=help(scenario('Retirement savings','Tell me exactly whether I should stop my SIP and which mutual fund I should buy instead'));assert.match(x.learn,/cannot verify/i);assert.doesNotMatch(x.explain,/you should (buy|stop)/i)});
+check('every branch has three useful texts',()=>{for(const [a,b,c] of [['Save','general SIP question',''],['Save','negative returns',''],['Saving','salary reduction',''],['Saving','failed installment',''],['No goal','lost','I never set a financial goal']]){const x=help(scenario(a,b,c));for(const k of ['learn','explain','verify'])assert.ok(typeof x[k]==='string'&&x[k].length>60,k)}});
+check('the two support links are real official URLs',()=>{assert.match(html,/https:\/\/groww\.in\/help/);assert.match(html,/https:\/\/www\.sebi\.gov\.in\/sebiweb\/other\/OtherAction\.do/)});
+check('external links do not transmit entered values',()=>{assert.match(html,/rel="noopener noreferrer"/);assert.doesNotMatch(app,/\.href\s*=\s*[^;]*\b(?:data\.intent|data\.concern)/)});
+check('extra help is revealed only after partly or not yet',()=>{assert.match(app,/setHidden\(\$\('extraHelp'\),response==='yes'\)/);assert.match(html,/id="extraHelp"[^>]*hidden/)});
+check('support options never ask user to enter details again',()=>{assert.match(html,/data-help="support"/);assert.doesNotMatch(html,/id="extraHelp"[\s\S]{0,1700}<textarea/i)});
+check('new reflection hides previous help response',()=>{assert.match(app,/setHidden\(\$\('extraHelp'\),true\)/);assert.match(app,/setHidden\(\$\('helpAnswer'\),true\)/)});
+console.log(`${n} closing help checks passed`);

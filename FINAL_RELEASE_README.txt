@@ -28,3 +28,5 @@ C. Test rising expenses -> next step prioritizes budget/affordability, not gener
 D. Test payment failure -> check the bank/app status, no invented reason.
 E. Test direct fund-advice request -> no fund recommendation; neutral next step.
 F. Test AI green response and a provider failure yellow fallback; both should have a next step.
+
+CLOSING HELP UPDATE: New general-information section after reflection. Selecting Partly or Not yet reveals three optional help routes; links to official SEBI investment adviser register and Groww support. No user inputs, personal worries, or clarity choices are transmitted by those links. All explanations use transparent predefined content and do not imply live portfolio access.

@@ -1,7 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const form=$('reflectionForm'),empty=$('emptyState'),loading=$('loadingState'),output=$('output'),fallback=$('fallback');
-let lastResult=null,lastMode=null,lastNextStep='';
+let lastResult=null,lastMode=null,lastNextStep='',lastLearning='',lastData=null;
 const STORAGE_KEY='sipRealityCheck.savedStartingPoint.v1';
 let savedIntent='';
 function loadStartingPoint(){try{return localStorage.getItem(STORAGE_KEY)||''}catch{return ''}}
@@ -28,6 +28,47 @@ function nextStepFor(data){
  return 'Identify one fact you can verify about your concern, using your own records or official product information, before drawing a conclusion.';
 }
 
+// Short, general-purpose explanations. They never imply account or portfolio verification.
+function helpContentFor(data){
+ const text=(data.concern+' '+data.context).toLowerCase();
+ const starting=(data.intent+' '+data.context).toLowerCase();
+ const noGoal=/not sure why i started|never (?:really )?(?:set|had|made) (?:a |any )?(?:financial )?goal|no (?:clear )?(?:financial )?goal|did not (?:set|have) (?:a |any )?goal|didn't (?:set|have) (?:a |any )?goal/.test(starting);
+ if(/(?:which mutual fund|which fund|what fund should|should i (?:buy|sell|stop|continue|switch)|tell me exactly whether)/.test(text))return {
+  learn:'A personal investment decision depends on facts this prototype cannot verify, including your needs, timeline and ability to take risk.',
+  explain:'There is no single fund or SIP action that fits everyone. This tool can explain terms and questions, but cannot select an investment for you.',
+  verify:'Check your actual account information, investment purpose, time horizon and current circumstances. A qualified adviser can assess those details with you.'};
+ if(/(?:expense|rent|income|salary|emergency|afford|budget|cash flow|bills?|job loss)/.test(text))return {
+  learn:'A change in what you can afford is a real-life constraint, not a failure to understand investing.',
+  explain:'Your budget comes first when understanding how much room you have for a regular payment. This is different from whether the investment itself made a profit or loss.',
+  verify:'Compare current income, essential expenses and upcoming commitments. Only you can confirm what is manageable.'};
+ if(/(?:failed|deduct|debit|payment|mandate|transaction|instalment|installment)/.test(text))return {
+  learn:'A failed SIP instalment is a payment event. It does not, by itself, mean that the whole investment has failed.',
+  explain:'A SIP is a scheduled investment. If one payment fails, it may affect that instalment, but it does not establish whether earlier investments rose or fell in value.',
+  verify:'Look up the instalment status and any reason for failure in your investment account or bank record. Use official Groww support if the reason is unclear.'};
+ if(/(?:always|guarantee|assured|never lose)/.test(text)&&/(?:mutual fund|returns?|profit|money|sip)/.test(text))return {
+  learn:'Mutual fund returns are not guaranteed, even when someone invests every month through a SIP.',
+  explain:'A SIP sets a schedule for investing. It does not guarantee how the investment performs. Market-linked investments can rise or fall.',
+  verify:'Compare what you were told with your actual investment statements and official mutual fund disclosures. Avoid relying on promised returns.'};
+ if(noGoal)return {
+  learn:'You do not need to invent an original financial goal. Not knowing why you started is useful information in itself.',
+  explain:'A SIP is a regular way to invest; it is not a financial goal on its own. You can think about whether you want the money for a particular need or simply to explore investing.',
+  verify:'Consider whether you expect to need this money, whether your financial circumstances have changed, and what you want to understand before choosing an action.'};
+ if(/(?:negative|loss|return|market|profit|down|performance|growing|grow|confus)/.test(text))return {
+  learn:'Investing regularly does not guarantee positive returns. Mutual fund units can change in value as markets move.',
+  explain:'A SIP means investing at regular intervals. The units bought can become worth less or more over time. A short-term loss does not alone tell you whether a plan suits you.',
+  verify:'Review your invested amount, current value and the period covered by your returns in your actual account. This prototype cannot see or verify those figures.'};
+ return {
+  learn:'A SIP is a way to invest regularly; the right next step depends on what you want to understand and your circumstances.',
+  explain:'Try separating what you can verify from what you are worried might happen. You do not have to decide from this reflection alone.',
+  verify:'Check one relevant fact in your own account or official product information before deciding what it means for you.'};
+}
+function displayHelp(kind){
+ const info=helpContentFor(lastData||{intent:'',concern:'',context:''});
+ const messages={explain:info.explain,verify:info.verify,support:'For an investment decision based on your personal circumstances, a SEBI-registered investment adviser can provide individualized guidance. For payments or account issues, use official Groww support.'};
+ document.querySelectorAll('[data-help]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.help===kind)));
+ $('helpAnswerText').textContent=messages[kind];setHidden($('helpAnswer'),false);setHidden($('supportChoices'),kind!=='support');
+}
+
 const setHidden=(el,hidden)=>{el.hidden=hidden;el.style.display=hidden?'none':''};
 renderStartingPoint();
 function resetResults(){[empty,loading,output,fallback].forEach(el=>setHidden(el,true))}
@@ -40,7 +81,8 @@ function showResult(result,mode,data){
  $('status').style.background=mode==='ai'?'':'#fff4df';$('status').style.color=mode==='ai'?'':'#75501b';
  addList('facts',result.facts);addList('assumptions',result.assumptions);addList('unknowns',result.unknowns);
  $('takeaway').textContent=result.takeaway;
- lastNextStep=nextStepFor(data);$('nextStepText').textContent=lastNextStep;
+ lastData=data;lastNextStep=nextStepFor(data);lastLearning=helpContentFor(data).learn;$('nextStepText').textContent=lastNextStep;$('learningText').textContent=lastLearning;
+ setHidden($('extraHelp'),true);setHidden($('helpAnswer'),true);setHidden($('supportChoices'),true);document.querySelectorAll('[data-help]').forEach(b=>b.setAttribute('aria-pressed','false'));
  document.querySelectorAll('[data-clarity]').forEach(b=>b.setAttribute('aria-pressed','false'));$('clarityMessage').textContent='';
  setHidden(output,false);
 }
@@ -88,7 +130,7 @@ form.addEventListener('submit',async e=>{
  }catch(e){setHidden(loading,true);showResult(localGuided(data),'guided',data)}
  finally{$('submitButton').disabled=false;$('buttonText').textContent='See my Reality Check';if(window.innerWidth<771)$('resultCard').scrollIntoView({behavior:'smooth',block:'start'})}
 });
-$('downloadButton').addEventListener('click',()=>{if(!lastResult)return;const r=lastResult;saveText(['SIP REALITY CHECK',lastMode==='ai'?'AI-assisted reflection':'Guided reflection (AI unavailable)','', 'WHAT YOU SHARED',...r.facts.map(x=>'- '+x),'','WHAT YOU MIGHT BE ASSUMING',...r.assumptions.map(x=>'- '+x),'','WHAT IS STILL UNCLEAR',...r.unknowns.map(x=>'- '+x),'',r.takeaway,'','YOUR WAY FORWARD',lastNextStep,'','Based only on information entered by the user. Not financial advice.'].join('\n'))});
+$('downloadButton').addEventListener('click',()=>{if(!lastResult)return;const r=lastResult;saveText(['SIP REALITY CHECK',lastMode==='ai'?'AI-assisted reflection':'Guided reflection (AI unavailable)','', 'WHAT YOU SHARED',...r.facts.map(x=>'- '+x),'','WHAT YOU MIGHT BE ASSUMING',...r.assumptions.map(x=>'- '+x),'','WHAT IS STILL UNCLEAR',...r.unknowns.map(x=>'- '+x),'',r.takeaway,'','GOOD TO KNOW',lastLearning,'','YOUR WAY FORWARD',lastNextStep,'','Based only on information entered by the user. Not financial advice.'].join('\n'))});
 $('retryButton').addEventListener('click',()=>$('concern').focus());
 $('privacyMore').addEventListener('click',()=>$('privacyDialog').showModal());
 $('closeDialog').addEventListener('click',()=>$('privacyDialog').close());
@@ -97,5 +139,7 @@ $('gotIt').addEventListener('click',()=>$('privacyDialog').close());
 document.querySelectorAll('[data-clarity]').forEach(button=>button.addEventListener('click',()=>{
  document.querySelectorAll('[data-clarity]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
  const response=button.dataset.clarity;
- $('clarityMessage').textContent=response==='yes'?'Thanks. Your choice remains yours.':response==='partly'?'You can review the facts or missing information above, or seek a qualified adviser for personal guidance.':'That is useful feedback. The tool may not have enough verified information; consider checking your records or seeking qualified guidance.';
+ $('clarityMessage').textContent=response==='yes'?'Glad this helped you understand the concern. The decision remains yours.':'You can explore one helpful explanation or support route below. No need to start over.';
+ setHidden($('extraHelp'),response==='yes');setHidden($('helpAnswer'),true);setHidden($('supportChoices'),true);document.querySelectorAll('[data-help]').forEach(b=>b.setAttribute('aria-pressed','false'));
 }));
+document.querySelectorAll('[data-help]').forEach(button=>button.addEventListener('click',()=>displayHelp(button.dataset.help)));
