@@ -1,0 +1,23 @@
+'use strict';const assert=require('node:assert/strict');const {handler,validateInput,validateResult,makePrompt}=require('../netlify/functions/reflect.cjs');
+let tests=0;const run=(name,fn)=>{fn();tests++;console.log('PASS',name)};
+const base={intent:'I wanted to build a long-term savings habit.',concern:'Returns are negative, so I am concerned about whether the plan is working.',context:''};
+const valid={facts:['You mentioned starting your SIP to build a savings habit.','You said recent returns have been negative, but those figures are not verified.'],assumptions:['You may be wondering whether negative returns mean your savings plan has failed.'],unknowns:['It is not clear whether your original goals or circumstances have changed.'],takeaway:'Understanding what is known and what is uncertain can help you reflect on your priorities.'};
+run('valid input accepted',()=>assert.equal(validateInput(base),null));
+run('empty input blocked',()=>assert.ok(validateInput({intent:'',concern:''})));
+run('PAN-like identifier blocked',()=>assert.ok(validateInput({...base,concern:'My PAN is ABCDE1234F and I am concerned.'})));
+run('long input blocked',()=>assert.ok(validateInput({...base,intent:'x'.repeat(270)})));
+run('normal response passes',()=>assert.equal(validateResult(valid,base),null));
+run('investment instruction blocked',()=>assert.ok(validateResult({...valid,takeaway:'You should continue your SIP.'},base)));
+run('fund recommendation blocked',()=>assert.ok(validateResult({...valid,assumptions:['Buy an index fund instead of your SIP.']},base)));
+run('promised recovery blocked',()=>assert.ok(validateResult({...valid,unknowns:['Your returns will recover next year.']},base)));
+run('unsupported number blocked',()=>assert.ok(validateResult({...valid,facts:['You earned 12% in your fund.']},base)));
+run('malformed response blocked',()=>assert.ok(validateResult({facts:'yes'},base)));
+run('prompt instructs no fabricated portfolio data',()=>assert.match(makePrompt(base),/No fabricated account data/i));
+(async()=>{
+ const req={httpMethod:'POST',body:JSON.stringify(base)};
+ delete process.env.GEMINI_API_KEY;
+ let response=await handler(req);assert.equal(response.statusCode,503);console.log('PASS no-key explicit configuration message');tests++;
+ response=await handler({httpMethod:'GET'});assert.equal(response.statusCode,405);console.log('PASS GET rejected');tests++;
+ response=await handler({httpMethod:'POST',body:JSON.stringify({...base,concern:'short'})});assert.equal(response.statusCode,400);console.log('PASS short concern rejected');tests++;
+ console.log(`\n${tests} local checks passed. Live Gemini inference not tested (no API key).`);
+})().catch(err=>{console.error(err);process.exit(1)});
