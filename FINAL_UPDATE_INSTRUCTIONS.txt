@@ -1,0 +1,29 @@
+SIP REALITY CHECK — FINAL SUBMISSION UPDATE (November 5, 2026)
+
+This complete update replaces the currently deployed site files.
+No new Gemini API key, GitHub repository, or Netlify project is required.
+
+FIXES INCLUDED
+- The guided reflection recognizes when the person NEVER set a financial goal. It no longer invents an original savings plan or asks if that nonexistent goal changed.
+- The guided reflection calls out the false belief that mutual funds ALWAYS provide good returns. Returns are not guaranteed.
+- Genuine affordability concerns are recognized as real constraints rather than misclassified as misunderstandings.
+- For a failed SIP installment, the guided reflection asks for the actual failure reason in the app or bank records, without inventing causes.
+- For direct investment advice requests, the guided worksheet does not recommend funds or SIP actions.
+- AI prompt is strengthened to produce plain-language explanations, avoid jargon and avoid false goals.
+- An additional relevance gate rejects AI text that ignores an explicit 'no goal' or 'guaranteed returns' statement and switches to the honest guided mode.
+- Browser-only fallback now mirrors these safety and relevance improvements even when the Netlify function is unreachable.
+- Gemini 429/503/5xx responses still receive limited automatic retries; after exhaustion the interface clearly labels a NON-AI guided reflection.
+
+ONE-TIME UPDATE
+1. Extract the ZIP; open its contents (not the outer folder).
+2. In your existing GitHub repository sip-reality-check, use Add file > Upload files.
+3. Drag all files and both folders (netlify and tests) from inside the ZIP into the root upload screen. Make sure you see netlify/functions/reflect.cjs and no extra SIP_Reality_Check... parent folder.
+4. Commit changes. If GitHub refuses overwrites, STOP and share the exact message; do not delete the repository.
+5. In Netlify > Deploys, confirm the commit publishes. Keep the existing GEMINI_API_KEY and GEMINI_MODEL variables.
+6. Open https://sip-reality-check.netlify.app and refresh with Ctrl+Shift+R.
+7. Test 'never set a financial goal', 'always give good returns' and direct-advice prompts. The yellow guided banner means a NON-AI fallback was used; do not count as an AI test pass.
+
+VALIDATION
+40 automated local checks passed, including the screenshot-specific regression cases, temporary API outages, safe fallbacks and rejection of some unsafe outputs.
+The fresh deployment and live Gemini service are not verified by these local tests.
+The website is an educational prototype. No investment advice; user data is sent to the AI provider when AI is available. No claims of guaranteed 12-month retention impact.

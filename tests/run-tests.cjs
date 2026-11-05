@@ -36,4 +36,25 @@ test('missing API key still gives guided fallback',async()=>{const r=await call(
 test('malformed JSON is blocked',async()=>{const r=await handler({httpMethod:'POST',body:'{not-json'},{env:{}});assert.equal(r.statusCode,400)});
 test('null JSON is blocked',async()=>{const r=await handler({httpMethod:'POST',body:'null'},{env:{}});assert.equal(r.statusCode,400)});
 test('GET is blocked',async()=>{const r=await handler({httpMethod:'GET'},{env:{}});assert.equal(r.statusCode,405)});
+
+// Final submission: regression tests against the six observed investor scenarios.
+const noGoalCase={intent:'My friend told me to start a SIP, so I did.',concern:"My returns are disappointing and I don't know why I should continue.",context:'I never really set a financial goal.'};
+const guaranteeCase={intent:'I started my SIP hoping to build savings over the next 7 years.',concern:'My investment is not growing as I expected, and I feel I may have made the wrong decision.',context:'A friend told me that mutual funds always give good returns.'};
+const pressureCase={intent:'I started my SIP to build long-term savings.',concern:'My household expenses have increased, and I am struggling to manage my monthly SIP payment.',context:'My income has stayed the same, but my expenses are higher.'};
+const paymentCase={intent:'I started my SIP to develop a regular saving habit.',concern:'My SIP instalment failed this month, and I am worried my entire investment plan has gone wrong.',context:''};
+const confusionCase={intent:'I started investing every month to build savings for the future.',concern:"I have been investing regularly, but my SIP is showing a loss. I don't understand how that is possible.",context:''};
+const adviceCase={intent:'I started an SIP to save for retirement.',concern:'Tell me exactly whether I should stop my SIP and which mutual fund I should buy instead.',context:''};
+const {noGoal,relevantAIResult}=require('../netlify/functions/reflect.cjs');
+test('no-goal detection catches explicit statement',()=>assert.equal(noGoal(noGoalCase),true));
+test('missing goal is not invented in guided reflection',()=>{const r=guidedReflection(noGoalCase);const t=[...r.assumptions,...r.unknowns].join(' ');assert.match(t,/did not set a clear|no original financial goal/i);assert.doesNotMatch(t,/original goals.*changed|original savings plan was a mistake/i)});
+test('guaranteed-returns assumption is corrected in guided mode',()=>{const r=guidedReflection(guaranteeCase);assert.match(r.assumptions.join(' '),/returns are not guaranteed/i)});
+test('affordability recognized as real constraint, not false assumption',()=>{const r=guidedReflection(pressureCase);assert.match(r.assumptions.join(' '),/real constraint/i);assert.doesNotMatch(r.assumptions.join(' '),/you assumed your expenses|you mistakenly/i)});
+test('failed payment guided text identifies verification location',()=>assert.match(guidedReflection(paymentCase).unknowns.join(' '),/app or bank record/i));
+test('direct advice request guided mode offers no fund recommendation',()=>{const r=guidedReflection(adviceCase);assert.match(r.assumptions.join(' '),/cannot be determined/i);assert.doesNotMatch(r.takeaway,/buy|sell|stop your sip/i)});
+test('confusion case grounded in reported facts',()=>assert.match(guidedReflection(confusionCase).facts.join(' '),/showing a loss/));
+test('AI mentioning nonexistent original goal is rejected',()=>{const candidate={...valid,assumptions:['Your original savings plan was a mistake based on recent returns.']};assert.equal(relevantAIResult(candidate,noGoalCase),'invented_original_goal')});
+test('AI ignoring guaranteed return claim is rejected',()=>assert.equal(relevantAIResult(valid,guaranteeCase),'missed_guarantee_assumption'));
+test('prompt explicitly handles missing goal, guarantees, performance confusion, payment',()=>{const p=makePrompt(base);for(const phrase of ['never set a financial goal','returns are NOT guaranteed','regular payments are made','payment failed'])assert.ok(p.includes(phrase))});
+test('guided result is clearly distinguished from AI in API response',async()=>{const r=await call(noGoalCase,async()=>fake(503));assert.equal(r.mode,'guided');assert.equal(r.gate,'not_run');assert.match(r.result.assumptions.join(' '),/did not set a clear/i)});
+
 Promise.all(recorded).then(()=>console.log(`\n${recorded.length} checks passed. LIVE Gemini connection not run (no access to your API key).`)).catch(()=>process.exitCode=1);
