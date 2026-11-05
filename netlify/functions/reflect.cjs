@@ -45,11 +45,38 @@ async function handler(event){
  const model=(process.env.GEMINI_MODEL||'gemini-2.5-flash').trim();
  const schema={type:'OBJECT',properties:{facts:{type:'ARRAY',items:{type:'STRING'}},assumptions:{type:'ARRAY',items:{type:'STRING'}},unknowns:{type:'ARRAY',items:{type:'STRING'}},takeaway:{type:'STRING'}},required:['facts','assumptions','unknowns','takeaway'],propertyOrdering:['facts','assumptions','unknowns','takeaway']};
  try{
-  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),18000);
+  // Retry only temporary provider errors. Never retry client/configuration or safety failures.
+  const requestBody=JSON.stringify({
+    contents:[{role:'user',parts:[{text:makePrompt(data)}]}],
+    generationConfig:{responseMimeType:'application/json',responseSchema:schema,maxOutputTokens:1800}
+  });
   let res;
-  try{res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify({contents:[{role:'user',parts:[{text:makePrompt(data)}]}],generationConfig:{responseMimeType:'application/json',responseSchema:schema,maxOutputTokens:1800}}),signal:controller.signal});}
-  finally{clearTimeout(timer);}
-  if(!res.ok){console.error('Gemini API status:',res.status);return reply(502,fallback('AI service unavailable'));}
+  for(let attempt=1;attempt<=3;attempt++){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),14000);
+    try{
+      res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-goog-api-key':key},
+        body:requestBody,
+        signal:controller.signal
+      });
+    }catch(e){
+      const retryable=e?.name==='AbortError'||e?.name==='TypeError';
+      console.error('Gemini request failed:',e?.name||'request_error','attempt:',attempt);
+      if(!retryable||attempt===3)return reply(502,fallback('AI request failed after retries'));
+    }finally{clearTimeout(timer);}
+    if(res?.ok)break;
+    if(res){
+      console.error('Gemini API status:',res.status,'attempt:',attempt);
+      if(![429,500,502,503,504].includes(res.status)||attempt===3){
+        return reply(502,fallback('AI provider unavailable'));
+      }
+    }
+    // Deliberately short exponential backoff: preserves interactive responsiveness.
+    await new Promise(resolve=>setTimeout(resolve,attempt===1?900:1800));
+  }
+  if(!res?.ok)return reply(502,fallback('AI provider unavailable'));
   const packet=await res.json();const raw=packet?.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
   let result;try{result=JSON.parse(raw);}catch{return reply(200,fallback('AI returned unreadable output'));}
   const reason=validateResult(result,data);
