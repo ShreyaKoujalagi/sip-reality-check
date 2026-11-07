@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {relevantAIResult,makePrompt,guidedReflection}=require('../netlify/functions/reflect.cjs');
+const input={intent:'To grow my money gradually',concern:'I have less savings and feel scared about a market crash',context:''};
+const base={facts:['You said you started to grow your money.'],assumptions:['Your concern may be linked to both your cash reserve and how market fluctuations affect your investments.'],unknowns:['How much accessible cash would you need for upcoming expenses?'],takeaway:'Cash needs and market risk are different things to consider.'};
+assert.equal(relevantAIResult(base,input),null);
+assert.equal(relevantAIResult({...base,assumptions:['You might be assuming that market drops mean your money is permanently lost.']},input),'invented_permanent_loss_belief');
+assert.equal(relevantAIResult({...base,assumptions:['You might be assuming that having less savings makes your investment more vulnerable to market changes.']},input),'cash_buffer_market_risk_confusion');
+assert.equal(relevantAIResult({...base,assumptions:['Limited savings may affect how comfortably you handle an unexpected expense; it does not change a fund’s market risk.']},input),null);
+const explicit={...input,concern:'I believe that if the market drops my money is permanently lost.'};
+assert.equal(relevantAIResult({...base,assumptions:['You might be assuming that a market drop means your money is permanently lost.']},explicit),null);
+const prompt=makePrompt(input);assert.match(prompt,/DOES NOT make the mutual fund itself more volatile/);assert.match(prompt,/Do not invent a belief/);
+const guided=guidedReflection(input);assert.ok(!/permanently lost|recover/i.test(guided.assumptions.join(' ')));
+console.log('PASS 7 accuracy guardrails: cash buffer ≠ fund risk, no invented permanent-loss beliefs');

@@ -148,7 +148,7 @@ function addList(id,values){const root=$(id);root.replaceChildren();values.forEa
 function saveText(text){const blob=new Blob([text],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='SIP_Reality_Check_Reflection.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function showResult(result,mode,data){
  lastResult=result;lastMode=mode;
- $('status').textContent=mode==='ai'?'✓ AI reflection checked for unsafe advice and obvious unsupported claims':'ⓘ Guided reflection · limited non-AI worksheet; AI result not shown';
+ $('status').textContent=mode==='ai'?'✓ AI reflection passed automated checks; investment facts not verified':'ⓘ Guided reflection · limited non-AI worksheet; AI result not shown';
  $('status').style.background=mode==='ai'?'':'#fff4df';$('status').style.color=mode==='ai'?'':'#75501b';
  addList('facts',result.facts);addList('assumptions',result.assumptions);addList('unknowns',result.unknowns);
  $('takeaway').textContent=result.takeaway;
