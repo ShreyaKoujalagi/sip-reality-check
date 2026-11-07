@@ -134,6 +134,14 @@ function displayHelp(kind){
 
 const setHidden=(el,hidden)=>{el.hidden=hidden;el.style.display=hidden?'none':''};
 renderStartingPoint();
+function setJourneyStage(stage){
+ const finished=stage!=='input';
+ $('inputCard').hidden=finished;
+ $('resultCard').classList.toggle('result-wide',finished);
+ $('resultCard').closest('.workspace').classList.toggle('results-stage',finished);
+ setHidden($('editAnswers'),!finished);
+ if(finished){$('resultCard').scrollIntoView({behavior:'smooth',block:'start'});}
+}
 function resetResults(){[empty,loading,output,fallback].forEach(el=>setHidden(el,true))}
 function showMessage(str){$('errorMessage').textContent=str;setHidden($('errorMessage'),!str)}
 function addList(id,values){const root=$(id);root.replaceChildren();values.forEach(str=>{const li=document.createElement('li');li.textContent=str;root.append(li)})}
@@ -178,12 +186,12 @@ form.addEventListener('submit',async e=>{
   if($('rememberIntent').checked){if(saveStartingPoint(data.intent)){savedIntent=data.intent;renderStartingPoint()}else{showMessage('This browser cannot remember your starting point. You can still continue.')}}
   else if(savedIntent){removeStartingPoint();savedIntent='';}
  }
- resetResults();setHidden(loading,false);$('submitButton').disabled=true;$('buttonText').textContent='Reflecting…';
+ resetResults();setHidden(loading,false);setJourneyStage('results');$('submitButton').disabled=true;$('buttonText').textContent='Reflecting…';
  try{
   const resp=await fetch('/.netlify/functions/reflect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
   const body=await resp.json();setHidden(loading,true);
   if(!resp.ok||!body.ok){
-   if(resp.status===400||resp.status===413){showMessage(body.message||'Please check your answers.');setHidden(empty,false);return}
+   if(resp.status===400||resp.status===413){showMessage(body.message||'Please check your answers.');setHidden(empty,false);setJourneyStage('input');return}
    showResult(localGuided(data),'guided',data);return;
   }
   if(!body.result||!Array.isArray(body.result.facts)||!Array.isArray(body.result.assumptions)||!Array.isArray(body.result.unknowns)||typeof body.result.takeaway!=='string'){
@@ -191,10 +199,16 @@ form.addEventListener('submit',async e=>{
   }
   showResult(body.result,body.mode==='ai'?'ai':'guided',data);
  }catch(e){setHidden(loading,true);showResult(localGuided(data),'guided',data)}
- finally{$('submitButton').disabled=false;$('buttonText').textContent='See my Reality Check';if(window.innerWidth<771)$('resultCard').scrollIntoView({behavior:'smooth',block:'start'})}
+ finally{$('submitButton').disabled=false;$('buttonText').textContent='See my Reality Check'}
 });
 $('downloadButton').addEventListener('click',()=>{if(!lastResult)return;const r=lastResult;saveText(['SIP REALITY CHECK',lastMode==='ai'?'AI-assisted reflection':'Guided reflection (AI unavailable)','', 'WHAT YOU SHARED',...r.facts.map(x=>'- '+x),'','WHAT YOU MIGHT BE ASSUMING',...r.assumptions.map(x=>'- '+x),'','WHAT IS STILL UNCLEAR',...r.unknowns.map(x=>'- '+x),'',r.takeaway,'','GOOD TO KNOW',lastLearning,'','YOUR WAY FORWARD',lastNextStep,'','Based only on information entered by the user. Not financial advice.'].join('\n'))});
-$('retryButton').addEventListener('click',()=>$('concern').focus());
+function editAnswers(){
+ setJourneyStage('input');
+ $('concern').focus({preventScroll:true});
+ $('inputCard').scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('editAnswers').addEventListener('click',editAnswers);
+$('retryButton').addEventListener('click',editAnswers);
 $('privacyMore').addEventListener('click',()=>$('privacyDialog').showModal());
 $('closeDialog').addEventListener('click',()=>$('privacyDialog').close());
 $('gotIt').addEventListener('click',()=>$('privacyDialog').close());

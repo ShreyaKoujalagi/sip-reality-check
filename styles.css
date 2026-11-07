@@ -43,3 +43,25 @@
 .learn-selector-label{display:block;font-size:11px;color:#607768;margin:5px 0 6px}
 .learn-topic-select{display:block;width:100%;max-width:100%;padding:10px 12px;border:1px solid #d4e5da;background:#fff;border-radius:9px;color:#275a3b;font:inherit;font-size:12px;margin-bottom:13px}
 .learn-topic-select:focus-visible{outline:3px solid #9ed3b6;outline-offset:2px}
+
+/* Two-stage responsive journey: balanced preview -> comfortably wide reflection */
+.workspace{align-items:stretch}
+.workspace.results-stage{display:block;max-width:920px;margin-left:auto;margin-right:auto}
+.results-stage .result-card{width:100%;padding:40px clamp(25px,5.5vw,65px)}
+.results-stage .card-heading{position:relative;padding-right:130px}
+.edit-answers{position:absolute;top:0;right:0;border:1px solid #cfe4d5;background:#f8fcf9;color:#236e45;border-radius:9px;padding:9px 11px;font-size:12px;font-weight:700}
+.edit-answers:hover{background:#eaf6ed}
+.results-stage .reflection-section{grid-template-columns:40px 1fr;gap:18px;padding:24px 0}
+.results-stage .reflection-section li,.results-stage .takeaway,.results-stage .learning-point p{font-size:14px;line-height:1.7}
+.results-stage .reflection-section h3{font-size:16px}
+.results-stage .next-step,.results-stage .clarity-check{padding:23px}
+.empty-state{margin:0;text-align:left;padding:24px 0 0}
+.preview-heading h3{font-size:20px;margin:9px 0 8px;color:#254a34}
+.preview-heading p{font-size:13px;line-height:1.6;color:#728379;font-weight:400;margin:0 0 22px}
+.preview-steps{display:grid;gap:11px}
+.preview-steps>div{display:flex;align-items:center;gap:13px;padding:13px 14px;border:1px solid #e1ede4;background:#f9fcfa;border-radius:11px}
+.preview-steps span{background:#e7f5ea;color:#288052;border-radius:9px;padding:8px;font-size:11px;font-weight:800}
+.preview-steps p{font-size:13px;color:#3b5e49;font-weight:630;margin:0}
+.empty-state .preview-foot{margin:20px 0 0;color:#718879;font-size:12px;font-weight:400;line-height:1.6}
+@media (min-width:771px){.workspace:not(.results-stage) .result-card{min-height:600px}}
+@media (max-width:770px){.workspace.results-stage{max-width:100%}.results-stage .result-card{padding:25px 20px}.results-stage .card-heading{padding-right:0}.edit-answers{position:static;display:block;margin-bottom:14px}.workspace:not(.results-stage) .result-card{min-height:auto}.preview-steps{gap:8px}}
