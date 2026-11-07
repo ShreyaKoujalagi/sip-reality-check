@@ -1,0 +1,12 @@
+SIP Reality Check — differentiated clarity journeys
+
+After the reflection:
+- Partly: acknowledges partial clarity and invites the investor to resolve one remaining doubt. Quick read, video collection, and 'Continue exploring later' remain optional.
+- Not yet: offers a reassuring introduction and one immediately visible, short, concern-matched educational fact, followed by optional Quick read, Watch a video, or Maybe later.
+- Yes: no additional help shown.
+
+Educational topics are matched to user-entered concerns (returns, budget, payment, goals, basics). No fund recommendations or pressured continuation.
+
+Deploy: upload the ZIP to the existing Netlify site (Deploys > drag and drop). Keep the existing site URL. Test both Partly and Not yet with a sample concern.
+
+Local automated suite: 71 checks passed. This release has not been deployed to your live site.

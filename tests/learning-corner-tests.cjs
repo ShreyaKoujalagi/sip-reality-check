@@ -1,0 +1,13 @@
+const fs=require('fs'),assert=require('assert');
+const html=fs.readFileSync('index.html','utf8'),js=fs.readFileSync('app.js','utf8');
+for(const id of ['learnCorner','learnTopic','learnAnswer','learnBullets','learnTakeaway','learnLink','learnSource'])assert(html.includes(`id="${id}"`),id);
+for(const option of ['read','video','later'])assert(html.includes(`data-learn="${option}"`),option);
+for(const topic of ['returns','budget','payment','goal','basics'])assert(js.includes(`${topic}:{title:`),topic);
+assert(js.includes('function learningTopicFor(data)'));
+assert(js.includes('resetLearning(response);'));
+for(const id of ['helpHeading','learnHeading','learnIntro','learnStarter'])assert(html.includes(`id="${id}"`),id);
+assert(js.includes("response==='partly'"));
+assert(js.includes("resource.bullets[0]"));
+assert(js.includes("'https://investor.sebi.gov.in/inv_aware_edu_videos.html'"));
+assert(js.includes('addEventListener(\'click\',()=>showLearning'));
+console.log('PASS learning corner markup, topics, resources, and click controls');

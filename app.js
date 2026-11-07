@@ -62,6 +62,54 @@ function helpContentFor(data){
   explain:'Try separating what you can verify from what you are worried might happen. You do not have to decide from this reflection alone.',
   verify:'Check one relevant fact in your own account or official product information before deciding what it means for you.'};
 }
+// Curated, deterministic educational content; never generated investment instructions.
+const LEARNING_RESOURCES={
+ returns:{title:'Why do SIP returns fluctuate?',bullets:['A SIP is a way of investing regularly, not a promise of positive returns.','The value of mutual fund units can rise or fall with market conditions.','Check the time period, invested amount, and scheme risk information before interpreting a return.'],takeaway:'A short-term return alone cannot tell you what decision is suitable for you.',videoTopic:'Mutual Funds: What is NAV? / Different types of risk in equity funds',readUrl:'https://www.amfiindia.com/investor/knowledge-center-info?zoneName=riskInMutualFunds'},
+ budget:{title:'What if my budget has changed?',bullets:['Essential expenses and available cash matter when thinking about a contribution.','Review the amount you can comfortably set aside without assuming it must stay the same.','For decisions that depend on your personal finances, consider a SEBI-registered investment adviser.'],takeaway:'Your circumstances matter more than maintaining a streak.',videoTopic:'Financial Planning for a secure financial future / Importance of Emergency Fund',readUrl:'https://investor.sebi.gov.in/investment-thingsbeforeinv.html'},
+ payment:{title:'What does a failed SIP payment mean?',bullets:['An unsuccessful debit is a payment event; it is not the same as the value of your existing mutual fund units.','Check the mandate, bank entry, and SIP status in the official app.','If the status remains unclear, contact official Groww support; never share your OTP or password.'],takeaway:'Verify the payment status before drawing a conclusion.',videoTopic:'What is SIP? (general basics)',readUrl:'https://groww.in/help'},
+ goal:{title:'What if I am unsure of my investment goal?',bullets:['You do not need to make up a past goal if you did not have one.','Think about what you want your money to be available for and approximately when.','Different time horizons and risks can call for different considerations.'],takeaway:'Getting clearer on your needs can be a useful first step.',videoTopic:'I haven’t thought of any goals / A plan for every goal',readUrl:'https://investor.sebi.gov.in/investment-thingsbeforeinv.html'},
+ basics:{title:'How does an SIP work?',bullets:['A SIP invests a chosen amount into a mutual fund at regular intervals.','The value of the mutual fund units changes; neither SIPs nor mutual funds guarantee a profit.','Review your risk tolerance, financial needs and the fund information before deciding anything.'],takeaway:'Understanding the mechanism is different from deciding whether it is right for you.',videoTopic:'What is SIP? / What is a Mutual Fund?',readUrl:'https://www.amfiindia.com/investor'}
+};
+function learningTopicFor(data){
+ const t=((data?.concern||'')+' '+(data?.context||'')).toLowerCase(),intent=(data?.intent||'').toLowerCase();
+ if(/failed|payment|debit|mandate|transaction|instalment|installment|deduct/.test(t))return 'payment';
+ if(/expense|rent|income|salary|emergency|afford|budget|cash.flow|bills?|job loss/.test(t))return 'budget';
+ if(/negative|loss|return|market|profit|down|performance|growing|risk|volatile|nav/.test(t))return 'returns';
+ if(/not sure why i started|no goal|without a goal|don't know why/.test(intent))return 'goal';
+ return 'basics';
+}
+function resetLearning(response){
+ setHidden($('learnAnswer'),true);setHidden($('learnBulletBox'),true);setHidden($('learnLink'),true);
+ document.querySelectorAll('[data-learn]').forEach(b=>b.setAttribute('aria-pressed','false'));
+ const resource=LEARNING_RESOURCES[learningTopicFor(lastData)];
+ $('learnTopic').textContent=resource.title;
+ const partly=response==='partly';
+ $('helpHeading').textContent=partly?'What is the one thing you still want to clarify?':'What would help you feel less unsure?';
+ $('learnHeading').textContent=partly?'Clear up one remaining question':'Start with something simple';
+ $('learnIntro').textContent=partly?'You have some clarity already. Pick the format that helps you resolve a remaining doubt.':'You do not have to figure everything out now. Start with one simple idea, then explore more only if useful.';
+ $('learnStarter').textContent=partly?'':resource.bullets[0];
+ setHidden($('learnStarter'),partly);
+ document.querySelector('[data-learn="later"]').textContent=partly?'Continue exploring later':'Maybe later';
+}
+function showLearning(kind){
+ const r=LEARNING_RESOURCES[learningTopicFor(lastData)];
+ document.querySelectorAll('[data-learn]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.learn===kind)));
+ setHidden($('learnAnswer'),false);setHidden($('learnBulletBox'),kind!=='read');setHidden($('learnLink'),kind==='later');
+ $('learnSource').textContent='';
+ if(kind==='read'){
+  $('learnAnswerText').textContent='Here are three simple things to know:';
+  $('learnBullets').replaceChildren();r.bullets.forEach(b=>{const li=document.createElement('li');li.textContent=b;$('learnBullets').append(li)});
+  $('learnTakeaway').textContent=r.takeaway;
+  $('learnLink').href=r.readUrl;$('learnLink').textContent='Explore the official resource ↗';
+  $('learnSource').textContent='Optional deeper reading · SEBI / AMFI / official Groww support';
+ }else if(kind==='video'){
+  $('learnAnswerText').textContent='SEBI’s education library includes videos on: '+r.videoTopic+'. Choose a video that interests you; the link opens the official video collection.';
+  $('learnLink').href='https://investor.sebi.gov.in/inv_aware_edu_videos.html';$('learnLink').textContent='Browse SEBI educational videos ↗';
+  $('learnSource').textContent='Educational video library · SEBI Investor';
+ }else{
+  $('learnAnswerText').textContent='You can explore this again whenever it suits you. No investment decision is required here.';
+ }
+}
 function displayHelp(kind){
  const info=helpContentFor(lastData||{intent:'',concern:'',context:''});
  const messages={explain:info.explain,verify:info.verify,support:'For an investment decision based on your personal circumstances, a SEBI-registered investment adviser can provide individualized guidance. For payments or account issues, use official Groww support.'};
@@ -82,7 +130,7 @@ function showResult(result,mode,data){
  addList('facts',result.facts);addList('assumptions',result.assumptions);addList('unknowns',result.unknowns);
  $('takeaway').textContent=result.takeaway;
  lastData=data;lastNextStep=nextStepFor(data);lastLearning=helpContentFor(data).learn;$('nextStepText').textContent=lastNextStep;$('learningText').textContent=lastLearning;
- setHidden($('extraHelp'),true);setHidden($('helpAnswer'),true);setHidden($('supportChoices'),true);document.querySelectorAll('[data-help]').forEach(b=>b.setAttribute('aria-pressed','false'));
+ setHidden($('extraHelp'),true);resetLearning('no');setHidden($('helpAnswer'),true);setHidden($('supportChoices'),true);document.querySelectorAll('[data-help]').forEach(b=>b.setAttribute('aria-pressed','false'));
  document.querySelectorAll('[data-clarity]').forEach(b=>b.setAttribute('aria-pressed','false'));$('clarityMessage').textContent='';
  setHidden(output,false);
 }
@@ -139,7 +187,9 @@ $('gotIt').addEventListener('click',()=>$('privacyDialog').close());
 document.querySelectorAll('[data-clarity]').forEach(button=>button.addEventListener('click',()=>{
  document.querySelectorAll('[data-clarity]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
  const response=button.dataset.clarity;
- $('clarityMessage').textContent=response==='yes'?'Glad this helped you understand the concern. The decision remains yours.':'You can explore one helpful explanation or support route below. No need to start over.';
- setHidden($('extraHelp'),response==='yes');setHidden($('helpAnswer'),true);setHidden($('supportChoices'),true);document.querySelectorAll('[data-help]').forEach(b=>b.setAttribute('aria-pressed','false'));
+ $('clarityMessage').textContent=response==='yes'?'Glad this helped you understand the concern. The decision remains yours.':response==='partly'?'You already have some clarity. Let’s focus on the question that remains.':'That’s okay. Start with one simple explanation; there is no need to decide today.';
+ setHidden($('extraHelp'),response==='yes');resetLearning(response);setHidden($('helpAnswer'),true);setHidden($('supportChoices'),true);document.querySelectorAll('[data-help]').forEach(b=>b.setAttribute('aria-pressed','false'));
 }));
 document.querySelectorAll('[data-help]').forEach(button=>button.addEventListener('click',()=>displayHelp(button.dataset.help)));
+
+document.querySelectorAll('[data-learn]').forEach(b=>b.addEventListener('click',()=>showLearning(b.dataset.learn)));
