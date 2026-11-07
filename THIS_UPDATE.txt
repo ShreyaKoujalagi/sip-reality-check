@@ -1,0 +1,11 @@
+SIP Reality Check — topic matching and layout refinement
+
+Changes:
+1. Learning topics now recognize additional returns, budget, and payment phrases, based on the current concern.
+2. An optional topic selector allows the investor to correct the suggestion without rewriting their concern.
+3. The left input card no longer stretches to match the results column. On sufficiently tall desktop screens, it remains visible while the user reviews the reflection.
+4. Mobile layout and saved starting-point behavior are unchanged.
+
+Deployment: Upload the CONTENTS of this folder into the EXISTING GitHub repository main branch, preserving the netlify/functions and tests subdirectories, then commit. Netlify will redeploy via GitHub.
+
+Testing: 46 core + 12 journey + 12 closing-help + learning corner + topic/layout checks pass. Live-site and AI-provider integration should still be tested after deployment.

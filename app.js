@@ -1,7 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const form=$('reflectionForm'),empty=$('emptyState'),loading=$('loadingState'),output=$('output'),fallback=$('fallback');
-let lastResult=null,lastMode=null,lastNextStep='',lastLearning='',lastData=null;
+let lastResult=null,lastMode=null,lastNextStep='',lastLearning='',lastData=null,selectedLearningTopic='basics';
 const STORAGE_KEY='sipRealityCheck.savedStartingPoint.v1';
 let savedIntent='';
 function loadStartingPoint(){try{return localStorage.getItem(STORAGE_KEY)||''}catch{return ''}}
@@ -71,17 +71,32 @@ const LEARNING_RESOURCES={
  basics:{title:'How does an SIP work?',bullets:['A SIP invests a chosen amount into a mutual fund at regular intervals.','The value of the mutual fund units changes; neither SIPs nor mutual funds guarantee a profit.','Review your risk tolerance, financial needs and the fund information before deciding anything.'],takeaway:'Understanding the mechanism is different from deciding whether it is right for you.',videoTopic:'What is SIP? / What is a Mutual Fund?',readUrl:'https://www.amfiindia.com/investor'}
 };
 function learningTopicFor(data){
+ // Match the CURRENT concern first. An earlier reason to start the SIP should not
+ // override what is troubling the investor today. This is a deterministic hint,
+ // and users can always correct it using the topic selector.
  const t=((data?.concern||'')+' '+(data?.context||'')).toLowerCase(),intent=(data?.intent||'').toLowerCase();
- if(/failed|payment|debit|mandate|transaction|instalment|installment|deduct/.test(t))return 'payment';
- if(/expense|rent|income|salary|emergency|afford|budget|cash.flow|bills?|job loss/.test(t))return 'budget';
- if(/negative|loss|return|market|profit|down|performance|growing|risk|volatile|nav/.test(t))return 'returns';
+ if(/failed|unsuccessful|rejected|bounced|payment|debit|mandate|transaction|instalment|installment|deduct|autopay|auto.pay/.test(t))return 'payment';
+ if(/expense|rent|income|salary|emergency|afford|budget|cash.flow|bills?|job loss|lost (?:my |the )?job|money is tight|cannot pay|can't pay|unable to pay|not enough money|financial stress/.test(t))return 'budget';
+ if(/negative|loss|losing|lost money|return|market|profit|down|performance|performing|growing|growth|not growing|risk|volatile|volatility|nav|value (?:fell|dropped|decreased)|declining|underperform|not making money|no gains|disappoint|fluctuat/.test(t))return 'returns';
+ if(/(?:why|what).*(?:start|invest)|goal|purpose|not sure why i started|no goal|without a goal|don't know why/.test(t))return 'goal';
  if(/not sure why i started|no goal|without a goal|don't know why/.test(intent))return 'goal';
  return 'basics';
+}
+function currentLearningResource(){return LEARNING_RESOURCES[selectedLearningTopic]||LEARNING_RESOURCES.basics;}
+function updateLearningTopic(){
+ selectedLearningTopic=$('learnTopicSelect').value;
+ const r=currentLearningResource();
+ $('learnTopic').textContent=r.title;
+ if(!$('learnStarter').hidden)$('learnStarter').textContent=r.bullets[0];
+ setHidden($('learnAnswer'),true);
+ document.querySelectorAll('[data-learn]').forEach(b=>b.setAttribute('aria-pressed','false'));
 }
 function resetLearning(response){
  setHidden($('learnAnswer'),true);setHidden($('learnBulletBox'),true);setHidden($('learnLink'),true);
  document.querySelectorAll('[data-learn]').forEach(b=>b.setAttribute('aria-pressed','false'));
- const resource=LEARNING_RESOURCES[learningTopicFor(lastData)];
+ selectedLearningTopic=learningTopicFor(lastData);
+ $('learnTopicSelect').value=selectedLearningTopic;
+ const resource=currentLearningResource();
  $('learnTopic').textContent=resource.title;
  const partly=response==='partly';
  $('helpHeading').textContent=partly?'What is the one thing you still want to clarify?':'What would help you feel less unsure?';
@@ -92,7 +107,7 @@ function resetLearning(response){
  document.querySelector('[data-learn="later"]').textContent=partly?'Continue exploring later':'Maybe later';
 }
 function showLearning(kind){
- const r=LEARNING_RESOURCES[learningTopicFor(lastData)];
+ const r=currentLearningResource();
  document.querySelectorAll('[data-learn]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.learn===kind)));
  setHidden($('learnAnswer'),false);setHidden($('learnBulletBox'),kind!=='read');setHidden($('learnLink'),kind==='later');
  $('learnSource').textContent='';
@@ -193,3 +208,4 @@ document.querySelectorAll('[data-clarity]').forEach(button=>button.addEventListe
 document.querySelectorAll('[data-help]').forEach(button=>button.addEventListener('click',()=>displayHelp(button.dataset.help)));
 
 document.querySelectorAll('[data-learn]').forEach(b=>b.addEventListener('click',()=>showLearning(b.dataset.learn)));
+$('learnTopicSelect').addEventListener('change',updateLearningTopic);
